@@ -3,7 +3,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UrlPreviewType } from "@/types";
 import { StarIcon } from "@heroicons/react/24/solid";
-import { Tooltip } from "@nextui-org/tooltip";
 
 import { useEffect, useState } from "react";
 import { UrlPreview } from "./UrlPreview";
@@ -17,7 +16,6 @@ const CardData = [
       "I think this repo is amazing! You should definitely check it out. Big rep++ 🚀",
     rating: 5,
     timestamp: "Dec 14, 2024",
-    exactTime: "Dec 14, 2024 01:28 PM",
   },
   {
     url: "https://github.com/vercel/next.js",
@@ -27,7 +25,6 @@ const CardData = [
       "The Next.js framework is revolutionary! Get started with it today.",
     rating: 5,
     timestamp: "Dec 13, 2024",
-    exactTime: "Dec 13, 2024 05:34 AM",
   },
   {
     url: "https://github.com/tailwindlabs/tailwindcss",
@@ -37,7 +34,6 @@ const CardData = [
       "Tailwind CSS is the best utility-first CSS framework for modern web development.",
     rating: 4,
     timestamp: "Dec 09, 2024",
-    exactTime: "Dec 09, 2024 8:56 PM",
   },
 ];
 
@@ -157,28 +153,7 @@ export default function RepoCard() {
                 </div>
 
                 {/* Footer with Timestamp */}
-                <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <Tooltip
-                    closeDelay={50}
-                    showArrow
-                    classNames={{
-                      base: [
-                        // arrow color
-                        "before:bg-neutral-400 dark:before:bg-white",
-                      ],
-                      content: [
-                        "py-2 px-4 shadow-xl",
-                        "text-black bg-white from-white to-neutral-400",
-                      ],
-                    }}
-                    content={card.exactTime}
-                    placement="right"
-                  >
-                    <span className="text-xs text-gray-400">
-                      Posted on {card.timestamp}
-                    </span>
-                  </Tooltip>
-                </div>
+                <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center"></div>
               </div>
             ) : (
               <SkeletonCard />
