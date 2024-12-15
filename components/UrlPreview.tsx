@@ -27,6 +27,8 @@ export function UrlPreview({ preview, url }: UrlPreviewProps) {
               alt={preview.title}
               fill
               className="object-cover rounded-md"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              loading="lazy"
             />
           </div>
         ) : (
