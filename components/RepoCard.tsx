@@ -1,53 +1,36 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UrlPreviewType } from "@/types";
 import { StarIcon } from "@heroicons/react/24/solid";
 
+import { client } from "@/sanity/lib/client";
+import { CARDS_QUERY } from "@/sanity/lib/queries";
 import { useEffect, useState } from "react";
 import { UrlPreview } from "./UrlPreview";
 
-const CardData = [
-  {
-    url: "https://github.com/shadcn/ui",
-    avatarSrc: "https://github.com/shadcn.png",
-    userName: "shadcn",
-    description:
-      "I think this repo is amazing! You should definitely check it out. Big rep++ 🚀",
-    rating: 5,
-    timestamp: "Dec 14, 2024",
-  },
-  {
-    url: "https://github.com/vercel/next.js",
-    avatarSrc: "https://github.com/vercel.png",
-    userName: "vercel",
-    description:
-      "The Next.js framework is revolutionary! Get started with it today.",
-    rating: 5,
-    timestamp: "Dec 13, 2024",
-  },
-  {
-    url: "https://github.com/tailwindlabs/tailwindcss",
-    avatarSrc: "https://github.com/tailwindlabs.png",
-    userName: "tailwindlabs",
-    description:
-      "Tailwind CSS is the best utility-first CSS framework for modern web development.",
-    rating: 4,
-    timestamp: "Dec 09, 2024",
-  },
-];
+interface Card {
+  url: string;
+  user: {
+    username: string;
+    name: string;
+    image: string;
+  };
+  description: string;
+  rating: number;
+  postedAt: string;
+}
 
 export default function RepoCard() {
-  const [previews, setPreviews] = useState<(UrlPreviewType | null)[]>([
-    null,
-    null,
-    null,
-  ]);
+  const [cardData, setCardData] = useState<Card[]>([]);
+  const [previews, setPreviews] = useState<(UrlPreviewType | null)[]>([]);
 
   useEffect(() => {
-    async function fetchMetadata() {
+    async function fetchCardData() {
       try {
-        const metadataPromises = CardData.map(async (card) => {
+        const data: Card[] = await client.fetch(CARDS_QUERY);
+        setCardData(data);
+
+        const metadataPromises = data.map(async (card) => {
           const response = await fetch(
             `/api/og?url=${encodeURIComponent(card.url)}`
           );
@@ -57,88 +40,98 @@ export default function RepoCard() {
         const results = await Promise.all(metadataPromises);
         setPreviews(results);
       } catch (error) {
-        console.error("Failed to fetch metadata:", error);
+        console.error("Failed to fetch data:", error);
       }
     }
 
-    fetchMetadata();
+    fetchCardData();
   }, []);
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date
+      .toLocaleString("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "UTC",
+      })
+      .replace(",", "");
+  };
+
   const SkeletonCard = () => (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      {/* Skeleton Preview */}
-      <div className="w-full h-32 bg-gray-200 animate-pulse" />
-
-      {/* Skeleton Header with Avatar */}
-      <div className="flex items-center space-x-4 p-4">
+    <div className="bg-white rounded-3xl shadow-md overflow-hidden p-4">
+      <div className="w-full h-36 bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse rounded-lg" />
+      <div className="flex items-center mt-4 space-x-4">
         <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
-        <div className="w-24 h-6 bg-gray-200 animate-pulse" />
+        <div className="w-24 h-4 bg-gray-200 animate-pulse rounded-md" />
       </div>
-
-      {/* Skeleton Description */}
-      <div className="px-4 pb-2">
-        <div className="w-full h-4 bg-gray-200 animate-pulse mb-2" />
-        <div className="w-3/4 h-4 bg-gray-200 animate-pulse" />
+      <div className="mt-3 space-y-2">
+        <div className="w-full h-4 bg-gray-200 animate-pulse rounded-md" />
+        <div className="w-3/4 h-4 bg-gray-200 animate-pulse rounded-md" />
       </div>
-
-      {/* Skeleton Star Rating */}
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex space-x-1">
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex space-x-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-6 h-6 bg-gray-200 animate-pulse" />
+            <div
+              key={i}
+              className="w-6 h-6 bg-gray-200 animate-pulse rounded-full"
+            />
           ))}
         </div>
-        <div className="w-16 h-4 bg-gray-200 animate-pulse" />
-      </div>
-
-      {/* Skeleton Footer */}
-      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-        <div className="w-32 h-3 bg-gray-200 animate-pulse" />
+        <div className="w-16 h-4 bg-gray-200 animate-pulse rounded-md" />
       </div>
     </div>
   );
 
   return (
-    <div className="p-8">
+    <div className="p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {CardData.map((card, index) => (
+        {cardData.map((card, index) => (
           <div
             key={card.url}
-            className="transition-all duration-300 ease-in-out hover:shadow-lg transform hover:-translate-y-1.5 overflow-hidden rounded-2xl"
+            className="transition-all duration-300 ease-in-out hover:shadow-lg transform hover:-translate-y-1 overflow-hidden rounded-3xl bg-white shadow-md border border-gray-200"
           >
             {previews[index] ? (
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
+              <div>
                 <div className="w-full">
                   <UrlPreview preview={previews[index]!} url={card.url} />
                 </div>
-                {/* Header with Avatar */}
-                <div className="flex items-center space-x-4 p-4">
-                  <Avatar className="w-12 h-12 shadow-sm">
-                    <AvatarImage src={card.avatarSrc} />
-                    <AvatarFallback>
-                      {card.userName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
+                <div className="flex items-center p-4">
+                  <a
+                    href={`https://github.com/${card.user.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src={card.user.image}
+                      alt="Profile"
+                      className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
+                    />
+                  </a>
+                  <div className="ml-3">
                     <h1 className="text-lg font-semibold text-gray-800">
                       <a
-                        href={`https://github.com/${card.userName}`}
+                        href={`https://github.com/${card.user.username}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="hover:underline"
                       >
-                        {card.userName}
+                        {card.user.name}
                       </a>
                     </h1>
+                    <p className="text-sm text-gray-500">
+                      @{card.user.username}
+                    </p>
                   </div>
                 </div>
-
-                {/* Description */}
-                <p className="text-sm text-gray-600 px-4 pb-2 leading-relaxed">
+                <p className="text-sm text-gray-600 px-4 pb-2">
                   {card.description}
                 </p>
-
-                {/* Star Rating */}
-                <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center justify-between px-4 py-2 mb-2">
                   <div className="flex space-x-1">
                     {[...Array(5)].map((_, i) => (
                       <StarIcon
@@ -151,9 +144,11 @@ export default function RepoCard() {
                   </div>
                   <span className="text-sm text-gray-500">{card.rating}/5</span>
                 </div>
-
-                {/* Footer with Timestamp */}
-                <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center"></div>
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                  <span className="text-sm text-gray-500">
+                    {formatDate(card.postedAt)}
+                  </span>
+                </div>
               </div>
             ) : (
               <SkeletonCard />
