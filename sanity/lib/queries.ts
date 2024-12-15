@@ -1,13 +1,15 @@
 import { defineQuery } from "next-sanity";
 
 export const CARDS_QUERY = defineQuery(
-  `*[_type == "card" && defined(user._type)] | order(postedAt desc) {
-  url,
-  user -> {
-    _id, name, username, image
-  },
-  description,
-  rating,
-  postedAt
-}`
+  `*[_type == "card"] | order(postedAt desc) {
+    url,
+    "user": coalesce(user->, {
+      "username": "anonymous",
+      "name": "Anonymous",
+      "image": null
+    }),
+    description,
+    rating,
+    postedAt
+  }`
 );

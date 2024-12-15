@@ -13,8 +13,8 @@ interface Card {
   user: {
     username: string;
     name: string;
-    image: string;
-  };
+    image: string | null;
+  } | null;
   description: string;
   rating: number;
   postedAt: string;
@@ -28,7 +28,6 @@ export default function RepoCard() {
     async function fetchCardData() {
       try {
         const data: Card[] = await client.fetch(CARDS_QUERY);
-        setCardData(data);
 
         const metadataPromises = data.map(async (card) => {
           const response = await fetch(
@@ -38,6 +37,7 @@ export default function RepoCard() {
         });
 
         const results = await Promise.all(metadataPromises);
+        setCardData(data);
         setPreviews(results);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -101,30 +101,19 @@ export default function RepoCard() {
                   <UrlPreview preview={previews[index]!} url={card.url} />
                 </div>
                 <div className="flex items-center p-4">
-                  <a
-                    href={`https://github.com/${card.user.username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <img
-                      src={card.user.image}
-                      alt="Profile"
-                      className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
-                    />
-                  </a>
+                  <img
+                    src={card.user?.image || "https://i.imgur.com/Xwl9rpU.png"}
+                    alt={card.user?.name || "Anonymous"}
+                    className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
+                  />
                   <div className="ml-3">
                     <h1 className="text-lg font-semibold text-gray-800">
-                      <a
-                        href={`https://github.com/${card.user.username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        {card.user.name}
-                      </a>
+                      {card.user?.name || "Anonymous"}
                     </h1>
                     <p className="text-sm text-gray-500">
-                      @{card.user.username}
+                      {card.user?.username
+                        ? `@${card.user.username}`
+                        : "Anonymous"}
                     </p>
                   </div>
                 </div>
