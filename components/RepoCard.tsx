@@ -23,11 +23,14 @@ interface Card {
 export default function RepoCard() {
   const [cardData, setCardData] = useState<Card[]>([]);
   const [previews, setPreviews] = useState<(UrlPreviewType | null)[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCardData() {
+      setIsLoading(true);
       try {
         const data: Card[] = await client.fetch(CARDS_QUERY);
+        setCardData(data);
 
         const metadataPromises = data.map(async (card) => {
           const response = await fetch(
@@ -37,10 +40,11 @@ export default function RepoCard() {
         });
 
         const results = await Promise.all(metadataPromises);
-        setCardData(data);
         setPreviews(results);
       } catch (error) {
         console.error("Failed to fetch data:", error);
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -90,60 +94,75 @@ export default function RepoCard() {
   return (
     <div className="p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cardData.map((card, index) => (
-          <div
-            key={card.url}
-            className="transition-all duration-300 ease-in-out hover:shadow-lg transform hover:-translate-y-1 overflow-hidden rounded-3xl bg-white shadow-md border border-gray-200"
-          >
-            {previews[index] ? (
-              <div>
-                <div className="w-full">
-                  <UrlPreview preview={previews[index]!} url={card.url} />
-                </div>
-                <div className="flex items-center p-4">
-                  <img
-                    src={card.user?.image || "https://i.imgur.com/Xwl9rpU.png"}
-                    alt={card.user?.name || "Anonymous"}
-                    className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
-                  />
-                  <div className="ml-3">
-                    <h1 className="text-lg font-semibold text-gray-800">
-                      {card.user?.name || "Anonymous"}
-                    </h1>
-                    <p className="text-sm text-gray-500">
-                      {card.user?.username
-                        ? `@${card.user.username}`
-                        : "Anonymous"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 px-4 pb-2">
-                  {card.description}
-                </p>
-                <div className="flex items-center justify-between px-4 py-2 mb-2">
-                  <div className="flex space-x-1">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIcon
-                        key={i}
-                        className={`w-6 h-6 ${
-                          i < card.rating ? "text-yellow-400" : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-500">{card.rating}/5</span>
-                </div>
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                  <span className="text-sm text-gray-500">
-                    {formatDate(card.postedAt)}
-                  </span>
-                </div>
+        {isLoading
+          ? [...Array(cardData.length)].map((_, index) => (
+              <div
+                key={index}
+                className="transition-all duration-300 ease-in-out hover:shadow-lg transform hover:-translate-y-1 overflow-hidden rounded-3xl bg-white shadow-md border border-gray-200"
+              >
+                <SkeletonCard />
               </div>
-            ) : (
-              <SkeletonCard />
-            )}
-          </div>
-        ))}
+            ))
+          : cardData.map((card, index) => (
+              <div
+                key={card.url}
+                className="transition-all duration-300 ease-in-out hover:shadow-lg transform hover:-translate-y-1 overflow-hidden rounded-3xl bg-white shadow-md border border-gray-200 opacity-0 animate-fade-in"
+              >
+                {previews[index] ? (
+                  <div>
+                    <div className="w-full">
+                      <UrlPreview preview={previews[index]!} url={card.url} />
+                    </div>
+                    <div className="flex items-center p-4">
+                      <img
+                        src={
+                          card.user?.image || "https://i.imgur.com/Xwl9rpU.png"
+                        }
+                        alt={card.user?.name || "Anonymous"}
+                        className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
+                      />
+                      <div className="ml-3">
+                        <h1 className="text-lg font-semibold text-gray-800">
+                          {card.user?.name || "Anonymous"}
+                        </h1>
+                        <p className="text-sm text-gray-500">
+                          {card.user?.username
+                            ? `@${card.user.username}`
+                            : "Anonymous"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 px-4 pb-2">
+                      {card.description}
+                    </p>
+                    <div className="flex items-center justify-between px-4 py-2 mb-2">
+                      <div className="flex space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <StarIcon
+                            key={i}
+                            className={`w-6 h-6 ${
+                              i < card.rating
+                                ? "text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {card.rating}/5
+                      </span>
+                    </div>
+                    <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                      <span className="text-sm text-gray-500">
+                        {formatDate(card.postedAt)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <SkeletonCard />
+                )}
+              </div>
+            ))}
       </div>
     </div>
   );
