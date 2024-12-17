@@ -7,7 +7,7 @@ export const user = defineType({
   fields: [
     defineField({
       name: "id",
-      type: "number",
+      type: "string",
     }),
     defineField({
       name: "name",
@@ -25,6 +25,7 @@ export const user = defineType({
   preview: {
     select: {
       title: "name",
+      subtitle: "username",
     },
   },
 });
