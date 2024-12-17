@@ -30,7 +30,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ account, profile }) {
       if (account?.provider === "github") {
         const githubProfile = profile as {
           id: string;
@@ -41,21 +41,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
 
         try {
-          await sanityClient.createIfNotExists({
-            _id: `user-${user.id}`,
-            _type: "user",
-            id: user.id,
-            name: user.name,
-            username: githubProfile.login,
-            image: user.image,
-          });
+          // Felhasználó ellenőrzése kizárólag az ID alapján
+          const existingUser = await sanityClient.fetch(
+            `*[_type == "user" && id == $id][0]`,
+            {
+              id: githubProfile.id,
+            }
+          );
+
+          if (!existingUser) {
+            // Új felhasználó létrehozása, ha nem létezik
+            await sanityClient.create({
+              _id: `user-${githubProfile.id}`,
+              _type: "user",
+              id: githubProfile.id,
+              name: githubProfile.name || githubProfile.login,
+              username: githubProfile.login,
+              image: githubProfile.avatar_url,
+            });
+          } else {
+            // Meglévő felhasználó adatainak frissítése
+            await sanityClient
+              .patch(existingUser._id)
+              .set({
+                name: githubProfile.name || githubProfile.login,
+                username: githubProfile.login,
+                image: githubProfile.avatar_url,
+              })
+              .commit();
+          }
         } catch (error) {
-          console.error("Error saving user to Sanity:", error);
+          console.error("Error handling user in Sanity:", error);
           return false;
         }
       }
       return true;
     },
+
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
@@ -63,5 +85,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
+
   secret: process.env.AUTH_SECRET,
 });

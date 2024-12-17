@@ -1,15 +1,6 @@
+import { UrlPreviewProps } from "@/types";
 import { Link2 } from "lucide-react";
 import Image from "next/image";
-
-interface UrlPreviewProps {
-  preview: {
-    title: string;
-    description: string;
-    image?: string;
-    favicon?: string;
-  };
-  url: string;
-}
 
 export function UrlPreview({ preview, url }: UrlPreviewProps) {
   return (

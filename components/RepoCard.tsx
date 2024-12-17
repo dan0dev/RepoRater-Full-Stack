@@ -5,20 +5,9 @@ import { StarIcon } from "@heroicons/react/24/solid";
 
 import { client } from "@/sanity/lib/client";
 import { CARDS_QUERY } from "@/sanity/lib/queries";
+import { Card } from "@/types";
 import { useEffect, useState } from "react";
 import { UrlPreview } from "./UrlPreview";
-
-interface Card {
-  url: string;
-  user: {
-    username: string;
-    name: string;
-    image: string | null;
-  } | null;
-  description: string;
-  rating: number;
-  postedAt: string;
-}
 
 export default function RepoCard() {
   const [cardData, setCardData] = useState<Card[]>([]);

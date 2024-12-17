@@ -7,7 +7,8 @@ export const user = defineType({
   fields: [
     defineField({
       name: "id",
-      type: "string",
+      type: "number",
+      validation: (rule) => rule.required(),
     }),
     defineField({
       name: "name",
