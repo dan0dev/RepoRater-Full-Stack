@@ -1,77 +1,60 @@
-import { createClient } from "@sanity/client";
-import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+import { createClient } from '@sanity/client';
+import NextAuth from 'next-auth';
+import GitHub from 'next-auth/providers/github';
 
 const sanityClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   useCdn: false,
-  token: process.env.SANITY_API_TOKEN,
-  apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION,
+  token: process.env.NEXT_PUBLIC_SANITY_API_TOKEN,
+  apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2024-01-01',
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     GitHub({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
+      clientId: process.env.AUTH_GITHUB_ID!,
+      clientSecret: process.env.AUTH_GITHUB_SECRET!,
       profile(profile) {
         return {
           id: profile.id.toString(),
           name: profile.name || profile.login,
           email: profile.email,
           image: profile.avatar_url,
-          login: profile.login,
+          username: profile.login,
         };
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
   callbacks: {
-    async signIn({ account, profile }) {
-      if (account?.provider === "github") {
-        const githubProfile = profile as {
-          id: string;
-          login: string;
-          name: string;
-          email: string;
-          avatar_url: string;
-        };
-
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'github') {
         try {
-          // Felhasználó ellenőrzése kizárólag az ID alapján
-          const existingUser = await sanityClient.fetch(
-            `*[_type == "user" && id == $id][0]`,
-            {
-              id: githubProfile.id,
-            }
-          );
+          const existingUser = await sanityClient.fetch(`*[_type == "user" && userId == $id][0]`, {
+            id: user.id,
+          });
 
           if (!existingUser) {
-            // Új felhasználó létrehozása, ha nem létezik
             await sanityClient.create({
-              _id: `user-${githubProfile.id}`,
-              _type: "user",
-              id: githubProfile.id,
-              name: githubProfile.name || githubProfile.login,
-              username: githubProfile.login,
-              image: githubProfile.avatar_url,
+              _type: 'user',
+              userId: user.id,
+              name: user.name,
+              username: user.username || profile?.login,
+              image: user.image,
             });
           } else {
-            // Meglévő felhasználó adatainak frissítése
             await sanityClient
               .patch(existingUser._id)
               .set({
-                name: githubProfile.name || githubProfile.login,
-                username: githubProfile.login,
-                image: githubProfile.avatar_url,
+                name: user.name,
+                username: user.username || profile?.login,
+                image: user.image,
               })
               .commit();
           }
+          return true;
         } catch (error) {
-          console.error("Error handling user in Sanity:", error);
+          console.error('Error handling user in Sanity:', error);
           return false;
         }
       }
@@ -79,12 +62,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      if (session.user) {
+        session.user.id = token.sub!;
+        session.user.username = token.username as string;
       }
       return session;
     },
-  },
 
-  secret: process.env.AUTH_SECRET,
+    async jwt({ token, profile }) {
+      if (profile) {
+        token.username = profile.login;
+      }
+      return token;
+    },
+  },
 });

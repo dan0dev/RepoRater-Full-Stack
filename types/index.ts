@@ -25,4 +25,5 @@ export interface Card {
   description: string;
   rating: number;
   postedAt: string;
+  isAnonymous: boolean;
 }

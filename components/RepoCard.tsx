@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { UrlPreviewType } from "@/types";
-import { StarIcon } from "@heroicons/react/24/solid";
+import { UrlPreviewType } from '@/types';
+import { StarIcon } from '@heroicons/react/24/solid';
 
-import { client } from "@/sanity/lib/client";
-import { CARDS_QUERY } from "@/sanity/lib/queries";
-import { Card } from "@/types";
-import { useEffect, useState } from "react";
-import { UrlPreview } from "./UrlPreview";
+import { client } from '@/sanity/lib/client';
+import { CARDS_QUERY } from '@/sanity/lib/queries';
+import { Card } from '@/types';
+import { useEffect, useState } from 'react';
+import { UrlPreview } from './UrlPreview';
 
 export default function RepoCard() {
   const [cardData, setCardData] = useState<Card[]>([]);
@@ -20,39 +20,57 @@ export default function RepoCard() {
       try {
         const data: Card[] = await client.fetch(CARDS_QUERY);
         setCardData(data);
-
-        const metadataPromises = data.map(async (card) => {
-          const response = await fetch(
-            `/api/og?url=${encodeURIComponent(card.url)}`
-          );
-          return response.json();
-        });
-
-        const results = await Promise.all(metadataPromises);
-        setPreviews(results);
+        await fetchPreviews(data);
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setIsLoading(false);
       }
     }
 
+    // Set up real-time subscription
+    const subscription = client.listen(CARDS_QUERY).subscribe(async (update) => {
+      if (update.result) {
+        const newData: Card[] = await client.fetch(CARDS_QUERY);
+        setCardData(newData);
+        await fetchPreviews(newData);
+      }
+    });
+
     fetchCardData();
+
+    // Cleanup subscription
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchPreviews = async (data: Card[]) => {
+    const metadataPromises = data.map(async (card) => {
+      const response = await fetch(`/api/og?url=${encodeURIComponent(card.url)}`);
+      return response.json();
+    });
+
+    const results = await Promise.all(metadataPromises);
+    setPreviews(results);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date
-      .toLocaleString("en-US", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+      .toLocaleString('en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
         hour12: true,
-        timeZone: "UTC",
+        timeZone: 'UTC',
       })
-      .replace(",", "");
+      .replace(',', '');
+  };
+
+  const isAnonymousUser = (username?: string, name?: string) => {
+    if (!username || !name) return true;
+    return username.toLowerCase() === 'anonymous' || name.toLowerCase() === 'anonymous';
   };
 
   const SkeletonCard = () => (
@@ -69,10 +87,7 @@ export default function RepoCard() {
       <div className="flex items-center justify-between mt-4">
         <div className="flex space-x-2">
           {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="w-6 h-6 bg-gray-200 animate-pulse rounded-full"
-            />
+            <div key={i} className="w-6 h-6 bg-gray-200 animate-pulse rounded-full" />
           ))}
         </div>
         <div className="w-16 h-4 bg-gray-200 animate-pulse rounded-md" />
@@ -103,48 +118,58 @@ export default function RepoCard() {
                       <UrlPreview preview={previews[index]!} url={card.url} />
                     </div>
                     <div className="flex items-center p-4">
-                      <img
-                        src={
-                          card.user?.image || "https://i.imgur.com/Xwl9rpU.png"
-                        }
-                        alt={card.user?.name || "Anonymous"}
-                        className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
-                      />
-                      <div className="ml-3">
-                        <h1 className="text-lg font-semibold text-gray-800">
-                          {card.user?.name || "Anonymous"}
-                        </h1>
-                        <p className="text-sm text-gray-500">
-                          {card.user?.username
-                            ? `@${card.user.username}`
-                            : "Anonymous"}
-                        </p>
-                      </div>
+                      {!card.isAnonymous &&
+                      !isAnonymousUser(card.user?.username, card.user?.name) ? (
+                        <a
+                          href={`https://github.com/${card.user?.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center group"
+                        >
+                          <img
+                            src={card.user?.image || 'https://i.imgur.com/Xwl9rpU.png'}
+                            alt={card.user?.name || 'Anonymous'}
+                            className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm transition-transform group-hover:scale-105"
+                          />
+                          <div className="ml-3">
+                            <h1 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+                              {card.user?.name}
+                            </h1>
+                            <p className="text-sm text-gray-500 group-hover:text-blue-500 transition-colors">
+                              @{card.user?.username}
+                            </p>
+                          </div>
+                        </a>
+                      ) : (
+                        <div className="flex items-center">
+                          <img
+                            src="https://i.imgur.com/Xwl9rpU.png"
+                            alt="Anonymous"
+                            className="w-12 h-12 rounded-full ring-2 ring-gray-300 shadow-sm"
+                          />
+                          <div className="ml-3">
+                            <h1 className="text-lg font-semibold text-gray-800">Anonymous</h1>
+                            <p className="text-sm text-gray-500">@anonymous</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-600 px-4 pb-2">
-                      {card.description}
-                    </p>
+                    <p className="text-sm text-gray-600 px-4 pb-2">{card.description}</p>
                     <div className="flex items-center justify-between px-4 py-2 mb-2">
                       <div className="flex space-x-1">
                         {[...Array(5)].map((_, i) => (
                           <StarIcon
                             key={i}
                             className={`w-6 h-6 ${
-                              i < card.rating
-                                ? "text-yellow-400"
-                                : "text-gray-300"
+                              i < card.rating ? 'text-yellow-400' : 'text-gray-300'
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {card.rating}/5
-                      </span>
+                      <span className="text-sm text-gray-500">{card.rating}/5</span>
                     </div>
                     <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                      <span className="text-sm text-gray-500">
-                        {formatDate(card.postedAt)}
-                      </span>
+                      <span className="text-sm text-gray-500">{formatDate(card.postedAt)}</span>
                     </div>
                   </div>
                 ) : (

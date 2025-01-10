@@ -1,37 +1,43 @@
-import { defineField, defineType } from "sanity";
+import { defineField, defineType } from 'sanity';
 
 export const card = defineType({
-  name: "card",
-  title: "Card",
-  type: "document",
+  name: 'card',
+  title: 'Card',
+  type: 'document',
   fields: [
     defineField({
-      name: "id",
-      type: "number",
+      name: 'id',
+      type: 'number',
     }),
     defineField({
-      name: "url",
-      type: "url",
+      name: 'url',
+      type: 'url',
     }),
     defineField({
-      name: "user",
-      type: "reference",
-      to: { type: "user" },
+      name: 'user',
+      type: 'reference',
+      to: { type: 'user' },
     }),
     defineField({
-      name: "description",
-      type: "text",
+      name: 'isAnonymous',
+      type: 'boolean',
+      initialValue: false,
+    }),
+
+    defineField({
+      name: 'description',
+      type: 'text',
     }),
     defineField({
-      name: "rating",
-      type: "number",
+      name: 'rating',
+      type: 'number',
     }),
     defineField({
-      name: "postedAt",
-      type: "datetime",
+      name: 'postedAt',
+      type: 'datetime',
       options: {
-        dateFormat: "DD-MM-YYYY",
-        timeFormat: "HH:mm",
+        dateFormat: 'DD-MM-YYYY',
+        timeFormat: 'HH:mm',
       },
     }),
   ],

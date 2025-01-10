@@ -1,7 +1,8 @@
-import { card } from "@/sanity/schemaTypes/card";
-import { user } from "@/sanity/schemaTypes/user";
-import { type SchemaTypeDefinition } from "sanity";
+import { type SchemaTypeDefinition } from 'sanity';
+import { blacklist } from './blacklist';
+import { card } from './card';
+import { user } from './user';
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [user, card],
+  types: [user, card, blacklist],
 };
