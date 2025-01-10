@@ -28,15 +28,18 @@ export default function RepoCard() {
       }
     }
 
-    // Set up real-time subscription
-    const subscription = client.listen(CARDS_QUERY).subscribe(async (update) => {
-      if (update.result) {
-        const newData: Card[] = await client.fetch(CARDS_QUERY);
-        setCardData(newData);
-        await fetchPreviews(newData);
-      }
+    // Set up real-time subscription with immediate updates
+    const subscription = client.listen(CARDS_QUERY).subscribe({
+      next: async () => {
+        // Fetch fresh data immediately when changes occur
+        await fetchCardData();
+      },
+      error: (err) => {
+        console.error('Subscription error:', err);
+      },
     });
 
+    // Initial fetch
     fetchCardData();
 
     // Cleanup subscription

@@ -17,7 +17,7 @@ export function UrlPreview({ preview, url }: UrlPreviewProps) {
               src={preview.image}
               alt={preview.title}
               fill
-              className="object-cover rounded-md"
+              className="object-cover rounded-2xl"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               loading="lazy"
             />

@@ -3,13 +3,13 @@
 import { token } from '@/sanity/env';
 import { createClient } from '@sanity/client';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Create a new client instance with write permissions
 const writeClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
-  token: token, // Use the token from env
+  token: token,
   apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2024-01-01',
   useCdn: false,
 });
@@ -19,17 +19,53 @@ interface FormPopupProps {
   onClose: () => void;
 }
 
+interface NotificationProps {
+  countdown: number;
+}
+
+const RefreshNotification = ({ countdown }: NotificationProps) => (
+  <div className="fixed bottom-5 right-5 bg-white rounded-xl shadow-lg p-4 animate-popup">
+    <p className="text-sm text-gray-600">
+      Card posted successfully! Page will refresh in {countdown} seconds...
+    </p>
+    <div className="mt-2 w-full bg-gray-200 rounded-full h-1">
+      <div
+        className="bg-blue-600 h-1 rounded-full transition-all duration-1000"
+        style={{ width: `${(countdown / 10) * 100}%` }}
+      />
+    </div>
+  </div>
+);
+
 const FormPopup = ({ isOpen, onClose }: FormPopupProps) => {
   const { data: session } = useSession();
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
+  const [showRefreshNotification, setShowRefreshNotification] = useState(false);
+  const [countdown, setCountdown] = useState(10);
   const [errors, setErrors] = useState<{
     repoUrl?: string;
     thoughts?: string;
     rating?: string;
     rateLimit?: string;
   }>({});
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showRefreshNotification && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            window.location.reload();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showRefreshNotification, countdown]);
 
   if (!isOpen) return null;
 
@@ -144,7 +180,6 @@ const FormPopup = ({ isOpen, onClose }: FormPopupProps) => {
     try {
       let userRef = null;
       if (session?.user) {
-        // Always try to find or create user reference, regardless of anonymous posting
         const existingUser = await writeClient.fetch(`*[_type == "user" && userId == $id][0]`, {
           id: session.user.id,
         });
@@ -165,21 +200,20 @@ const FormPopup = ({ isOpen, onClose }: FormPopupProps) => {
         }
       }
 
-      // Create card document
       const cardDoc = {
         _type: 'card',
         url: repoUrlInput.value,
         description: thoughtsInput.value,
         rating: rating,
-        user: userRef, // Always store the user reference
-        isAnonymous: isAnonymous, // Add this field to track anonymous posts
+        user: userRef,
+        isAnonymous: isAnonymous,
         postedAt: new Date().toISOString(),
       };
 
       await writeClient.create(cardDoc);
-
       setRating(0);
       onClose();
+      setShowRefreshNotification(true);
     } catch (error) {
       console.error('Error submitting repository:', error);
       alert('Failed to submit repository. Please try again.');
@@ -298,6 +332,7 @@ const FormPopup = ({ isOpen, onClose }: FormPopupProps) => {
           )}
         </div>
       </div>
+      {showRefreshNotification && <RefreshNotification countdown={countdown} />}
     </div>
   );
 };
