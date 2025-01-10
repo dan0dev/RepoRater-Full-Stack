@@ -91,8 +91,10 @@ const FormPopup = ({ isOpen, onClose }: FormPopupProps) => {
   };
 
   const getBlacklistedWords = async () => {
-    const words = await writeClient.fetch(`*[_type == "blacklist"]{word}`);
-    return words.map((w: { word: string }) => w.word.toLowerCase());
+    const blacklist = await writeClient.fetch(
+      `*[_type == "blacklist" && _id == "blacklistConfig"][0].words[].word`
+    );
+    return blacklist?.map((word: string) => word.toLowerCase()) || [];
   };
 
   const containsBlacklistedWords = (text: string, blacklistedWords: string[]) => {
