@@ -1,6 +1,6 @@
-import { createClient } from "@sanity/client";
-import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+import { createClient } from '@sanity/client';
+import NextAuth from 'next-auth';
+import GitHub from 'next-auth/providers/github';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
@@ -27,11 +27,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   callbacks: {
     async signIn({ account, profile }) {
-      if (account?.provider === "github") {
+      if (account?.provider === 'github') {
         const githubProfile = profile as {
           id: string;
           login: string;
@@ -41,26 +41,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
 
         try {
-          // Felhasználó ellenőrzése kizárólag az ID alapján
           const existingUser = await sanityClient.fetch(
-            `*[_type == "user" && id == $id][0]`,
+            `*[_type == "user" && userId == $userId][0]`,
             {
-              id: githubProfile.id,
+              userId: githubProfile.id,
             }
           );
 
           if (!existingUser) {
-            // Új felhasználó létrehozása, ha nem létezik
             await sanityClient.create({
-              _id: `user-${githubProfile.id}`,
-              _type: "user",
-              id: githubProfile.id,
+              _type: 'user',
+              userId: githubProfile.id,
               name: githubProfile.name || githubProfile.login,
               username: githubProfile.login,
               image: githubProfile.avatar_url,
             });
           } else {
-            // Meglévő felhasználó adatainak frissítése
             await sanityClient
               .patch(existingUser._id)
               .set({
@@ -71,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               .commit();
           }
         } catch (error) {
-          console.error("Error handling user in Sanity:", error);
+          console.error('Error handling user in Sanity:', error);
           return false;
         }
       }
